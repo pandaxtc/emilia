@@ -9,7 +9,7 @@ import datetime
 log_dir = os.path.join(os.path.dirname(__file__), "log/")
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
-logfile_name = "ayano-"  + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+logfile_name = "ayano-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
 root_logger = logging.getLogger('discord')
 file_handler = handlers.RotatingFileHandler(filename=os.path.join(log_dir, logfile_name + ".log"),
@@ -35,6 +35,7 @@ bot = commands.Bot(command_prefix='$', description=description)
 
 ayano_logger = logging.getLogger('discord.ayano')
 
+
 @bot.event
 async def on_ready():
     ayano_logger.info('Logged in as <' + bot.user.name + "> <" + bot.user.id + ">")
@@ -47,6 +48,7 @@ async def on_message(message):
 
 @bot.command()
 async def roll(dice: str):
+    '''Rolls xdx'''
     try:
         rolls, limit = map(int, dice.split('d'))
     except Exception:
@@ -70,14 +72,10 @@ async def joined(member: discord.Member):
 
 
 @bot.command()
-async def suicide():
-    await bot.say("no pls :NotLikeHonk:")
-
-
-@bot.command()
 async def exit():
     await bot.say("Shutting down...")
     sys.exit(0)
+
 
 bot.load_extension("get")
 with open("token.txt", 'r') as file:
