@@ -1,10 +1,6 @@
-import asyncio
-
-import discord
 from discord.ext import commands
-import random, sys, os, logging
 from logging import handlers
-import datetime
+import discord, random, sys, os, logging, datetime, json
 
 log_dir = os.path.join(os.path.dirname(__file__), "log/")
 if not os.path.exists(log_dir):
@@ -78,6 +74,5 @@ async def exit():
 
 
 bot.load_extension("get")
-with open("token.txt", 'r') as file:
-    token = file.read()
-bot.run(token)
+dsc_token = json.load(open("token.json"))["dsc_token"]
+bot.run(dsc_token)

@@ -1,6 +1,6 @@
 from discord.ext import commands
-import os, datetime, logging, async_timeout, aiohttp, time
 from zipfile import ZipFile
+import os, datetime, logging, async_timeout, aiohttp, time, json
 
 logger = logging.getLogger("discord.ayano." + __name__)
 
@@ -10,6 +10,7 @@ class Get():
         self.bot = bot
         self.dir = os.path.dirname(__file__)
         self.cache_dir = "cache/"
+        self.safe_token = json.load(open("token.json"))["safe_token"]
 
     @commands.command(pass_context=True)
     async def get(self, ctx, count: str):
@@ -89,7 +90,7 @@ class Get():
                         async with session.post(url,
                                                 headers={
                                                     "token":
-                                                        "EoJGTcnXwOEO7QEdzGnVup1lFEE64hfrQ5QopQRKewX4rFAhbvcqnW5aRnUVZ9o4"
+                                                        self.safe_token
                                                 }, data=data) as r:
                             result = await r.json()
 
