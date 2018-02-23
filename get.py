@@ -21,50 +21,51 @@ class Get():
             os.mkdir(dl_dir)
             counter = 0
             dupes = {}
-            logger.info("Command invoked, downloading...")
+            logger.info("Command invoked, searching...")
             start = time.time()
 
             async with aiohttp.ClientSession() as session:
                 async for message in self.bot.logs_from(ctx.message.channel, limit=500):
-                    for attachment in message.attachments:
-                        if counter < int(count):
-                            with async_timeout.timeout(10):
-                                async with session.get(attachment['url']) as response:
-                                    filename = attachment["filename"]
-                                    id = attachment["id"]
-                                    filepath = os.path.join(dl_dir,
-                                                            filename if filename not in dupes
-                                                            else (filename +
-                                                                  os.path.splitext(filename)[0] +
-                                                                  "(%s)" % dupes[filename] +
-                                                                  os.path.splitext(filename)[1]))
-                                    logger.info("Now handling download of file %s <%s>", filename, id)
+                    if message.author !=ctx.message.author:
+                        for attachment in message.attachments:
+                            if counter < int(count):
+                                with async_timeout.timeout(10):
+                                    async with session.get(attachment['url']) as response:
+                                        filename = attachment["filename"]
+                                        id = attachment["id"]
+                                        filepath = os.path.join(dl_dir,
+                                                                filename if filename not in dupes
+                                                                else (filename +
+                                                                      os.path.splitext(filename)[0] +
+                                                                      "(%s)" % dupes[filename] +
+                                                                      os.path.splitext(filename)[1]))
+                                        logger.info("Now handling download of file %s <%s>", filename, id)
 
-                                    try:
-                                        with open(filepath, 'wb') as f:
-                                            while True:
-                                                chunk = await response.content.read(1024)
-                                                if not chunk:
-                                                    break
-                                                f.write(chunk)
-                                        if filename in dupes:
-                                            dupes[filename] += 1
-                                        else:
-                                            dupes[filename] = 1
-                                    except IOError as e:
-                                        logger.warning("File error on file %s, id <%s>!", filename, id,
-                                                       exc_info=True)
+                                        try:
+                                            with open(filepath, 'wb') as f:
+                                                while True:
+                                                    chunk = await response.content.read(1024)
+                                                    if not chunk:
+                                                        break
+                                                    f.write(chunk)
+                                            if filename in dupes:
+                                                dupes[filename] += 1
+                                            else:
+                                                dupes[filename] = 1
+                                        except IOError as e:
+                                            logger.warning("File error on file %s, id <%s>!", filename, id,
+                                                           exc_info=True)
 
-                            counter += 1
-                        else:
+                                counter += 1
+                            else:
+                                break
+                        if counter >= int(count):
                             break
-                    if counter >= int(count):
-                        break
 
             end = time.time()
-            logger.info("Download complete! Time elapsed: %f", end - start)
 
             if counter != 0:
+                logger.info("Download complete! Time elapsed: %f", end - start)
 
                 logger.info("Zipping %d files...", counter)
                 start = time.time()
@@ -100,6 +101,7 @@ class Get():
                 await self.bot.send_message(ctx.message.author, "Here's your file~: " + result["files"][0]["url"])
 
             else:
+                logger.info("No images found. Time elapsed: %f", end - start)
                 await self.bot.say("No compatible images found :cry:")
                 os.rmdir(dl_dir)
 
