@@ -42,10 +42,11 @@ class Birthday:
             except commands.BadArgument as e:
                 raise e
             try:
+                bd = self.bdays[str(member.id)]
                 await ctx.send(embed=discord.Embed().set_footer(
                     text="{name}'s birthday is on {date}!".format(
                         name=member.display_name,
-                        date=self.bdays[str(member.id)]
+                        date=bd[:2] + "/" + bd[2:]
                     ),
                     icon_url="https://i.imgur.com/3KdYtqn.png"
                 ))
