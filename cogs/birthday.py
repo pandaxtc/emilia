@@ -45,7 +45,7 @@ class Birthday:
                 await ctx.send(embed=discord.Embed().set_footer(
                     text="{name}'s birthday is on {date}!".format(
                         name=member.display_name,
-                        date=self.bdays[member.id]
+                        date=self.bdays[str(member.id)]
                     ),
                     icon_url="https://i.imgur.com/3KdYtqn.png"
                 ))
