@@ -1,6 +1,14 @@
-from discord.ext import commands
+import datetime
+import json
+import logging
+import os
+import random
+import sys
+import time
 from logging import handlers
-import discord, random, sys, os, logging, datetime, json
+
+import discord
+from discord.ext import commands
 
 log_dir = os.path.join(os.path.dirname(__file__), "log/")
 if not os.path.exists(log_dir):
@@ -31,48 +39,87 @@ bot = commands.Bot(command_prefix='$', description=description)
 
 ayano_logger = logging.getLogger('discord.ayano')
 
+bot.warning_icon = "https://i.imgur.com/4o1srPK.png"
+bot.success_icon = "https://i.imgur.com/JSWM55t.png"
+bot.denial_icon = "https://i.imgur.com/gOIGrSV.png"
+
+command_start_time = {}
+
 
 @bot.event
 async def on_ready():
-    ayano_logger.info('Logged in as <' + bot.user.name + "> <" + bot.user.id + ">")
+    ayano_logger.info('Logged in as <' + bot.user.name + "> <" + str(bot.user.id) + ">")
+    ayano_logger.info("Running on discord.py v" + discord.__version__)
+    await bot.change_presence(activity=discord.Activity(name="Beta than ever!", type=0))
 
 
-@bot.event
-async def on_message(message):
-    await bot.process_commands(message)
+# It's alive!
+@bot.before_invoke
+async def pre(ctx: commands.Context):
+    ayano_logger.info("Command {command} triggered by user {username}<{uid}>.".format(
+        command=ctx.command.name,
+        username=ctx.author.display_name,
+        uid=ctx.author.id
+    ))
+    command_start_time[ctx.message.id] = time.clock()
+
+
+@bot.after_invoke
+async def post(ctx: commands.Context):
+    try:
+        elapsed = str(time.clock() - command_start_time.pop(ctx.message.id))
+    except KeyError:
+        elapsed = "N/A"
+    ayano_logger.info(
+        "Command {command} triggered by user {username}<{uid}> completed. Elapsed time: {time}s".format(
+            command=ctx.command.name,
+            username=ctx.author.display_name,
+            uid=ctx.author.id,
+            time=elapsed
+        ))
 
 
 @bot.command()
-async def roll(dice: str):
+async def roll(ctx, dice: str):
     '''Rolls xdx'''
     try:
         rolls, limit = map(int, dice.split('d'))
     except Exception:
-        await bot.say('Format has to be in NdN!')
-        return
+        raise commands.CommandError("Format must be NdN!")
 
     result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
-    await bot.say(result)
+    await ctx.send(embed=discord.Embed().set_footer(
+        text=result,
+        icon_url="https://i.imgur.com/jvHOTmJ.png"
+    ))
 
 
-@bot.command(description='For when you wanna settle the score some other way')
-async def choose(*choices: str):
+@bot.command(description="For when you wanna settle the score some other way")
+async def choose(ctx, *choices: str):
     """Chooses between multiple choices."""
-    await bot.say(random.choice(choices))
+    await ctx.send(embed=discord.Embed().set_footer(
+        text="I choose " + random.choice(choices) + "!",
+        icon_url="https://i.imgur.com/gkgrjRa.png"
+    ))
 
 
 @bot.command()
-async def joined(member: discord.Member):
+async def joined(ctx, member: discord.Member):
     """Says when a member joined."""
-    await bot.say('{0.name} joined at {0.joined_at}'.format(member))
+    await ctx.send(embed=discord.Embed().set_footer(
+        text="{0.name} joined at {0.joined_at}".format(member),
+        icon_url="https://i.imgur.com/xAYyvuw.png"
+    ))
 
 
 @bot.command()
-async def exit():
-    await bot.say("Shutting down...")
-    sys.exit(0)
+async def exit(ctx):
+    await ctx.send("Shutting down...")
+    bot.logout()
 
 
-bot.load_extension("get")
+bot.load_extension("cogs.get")
+bot.load_extension("cogs.birthday")
+bot.load_extension("cogs.error")
 dsc_token = json.load(open("token.json"))["dsc_token"]
 bot.run(dsc_token)
