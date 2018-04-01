@@ -131,7 +131,7 @@ class Birthday:
                 this_time_tomorrow = datetime.date.today() + datetime.timedelta(days=1)
                 guild = self.bot.get_guild(guildid)
                 members = guild.members
-                bd_role = discord.utils.get(self.bot.get_guild(374158830831140866).roles, id=roleid)
+                bd_role = discord.utils.get(guild.roles, id=roleid)
 
                 logger.info("Today is %d/%d.", now.month, now.day)
 
