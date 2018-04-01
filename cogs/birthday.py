@@ -136,19 +136,20 @@ class Birthday:
                 logger.info("Today is %d/%d.", now.month, now.day)
 
                 for m in members:
-                    id = m.id
-                    try:
-                        month = int(self.bdays[str(id)][:2])
-                        day = int(self.bdays[str(id)][2:])
-                        logger.info("Registered birthday %d/%d found for user %s.", month, day, str(m))
-                        if month == now.month and day == now.day:
-                            logger.info("Hit, updating role.")
-                            await m.add_roles(bd_role)
-                        elif bd_role in m.roles:
-                            await m.remove_roles(bd_role)
-                    except KeyError:
-                        if bd_role in m.roles:
-                            await m.remove_roles(bd_role)
+                    if m.id != guild.owner.id:
+                        id = m.id
+                        try:
+                            month = int(self.bdays[str(id)][:2])
+                            day = int(self.bdays[str(id)][2:])
+                            logger.info("Registered birthday %d/%d found for user %s.", month, day, str(m))
+                            if month == now.month and day == now.day:
+                                logger.info("Hit, updating role.")
+                                await m.add_roles(bd_role)
+                            elif bd_role in m.roles:
+                                await m.remove_roles(bd_role)
+                        except KeyError:
+                            if bd_role in m.roles:
+                                await m.remove_roles(bd_role)
 
                 time_to_tomorrow = (datetime.datetime.combine(
                     this_time_tomorrow,
