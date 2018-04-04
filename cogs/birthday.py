@@ -1,11 +1,10 @@
 import asyncio
-import discord
 import datetime
-import time
 import json
 import logging
 import os
-from collections import deque
+
+import discord
 from discord.ext import commands
 
 logger = logging.getLogger("discord.ayano." + __name__)
@@ -18,7 +17,7 @@ class Birthday:
         self.cache_dir = "cache/"
         with open("bday.json", "r") as f:
             self.bdays = json.load(f)
-        with open("token.json", "r") as f:
+        with open("config.json", "r") as f:
             j = json.load(f)
             self.bd_guilds = j["bd_guilds"]
         self.bd_sleepers = {}
@@ -87,11 +86,9 @@ class Birthday:
             member: discord.Member
     ):
         try:
-            self.bdays.pop(member.id, None)
+            self.bdays.pop(member.id)
         except KeyError:
             raise commands.CommandError("Member " + str(member) + " not found.")
-
-        print(self.bdays)
 
         await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.bdays, "bday.json")
 
@@ -122,7 +119,7 @@ class Birthday:
             file: str
     ):
         with open(file, "w") as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
 
     async def bd_chk(self, guildid: int, roleid: int):
         while True:
@@ -139,10 +136,10 @@ class Birthday:
 
                 for m in members:
                     if m.id != guild.owner.id:
-                        id = m.id
+                        uid = m.id
                         try:
-                            month = int(self.bdays[str(id)][:2])
-                            day = int(self.bdays[str(id)][2:])
+                            month = int(self.bdays[str(uid)][:2])
+                            day = int(self.bdays[str(uid)][2:])
                             logger.info("Registered birthday %d/%d found for user %s.", month, day, str(m))
                             if month == now.month and day == now.day:
                                 logger.info("Hit, updating role.")

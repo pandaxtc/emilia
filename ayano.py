@@ -145,6 +145,7 @@ async def exit(ctx):
 
 bot.load_extension("cogs.get")
 bot.load_extension("cogs.birthday")
+bot.load_extension("cogs.autoreact")
 bot.load_extension("cogs.error")
-dsc_token = json.load(open("token.json"))["dsc_token"]
+dsc_token = json.load(open("config.json"))["dsc_token"]
 bot.run(dsc_token)

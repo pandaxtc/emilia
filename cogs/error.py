@@ -13,7 +13,7 @@ class Error:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
-        self.taboo = json.load(open("token.json"))["name"]
+        self.taboo = json.load(open("config.json"))["name"]
 
     # Provides error messages for certain types of exception, and gives censored tracebacks for others (specifically,
     # CommandInvokeErrors, which wrap exceptions in the commands themselves)
