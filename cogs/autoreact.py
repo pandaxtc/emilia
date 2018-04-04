@@ -20,14 +20,15 @@ class Autoreact():
             self.ar_dict = json.load(f)
 
         async def autoreact(message):
-            if str(message.guild.id) in self.ar_dict:
-                for rgx in self.ar_dict[str(message.guild.id)]:
-                    try:
-                        async with async_timeout.timeout(2):
-                            if re.match(rgx, message.content):
-                                await message.channel.send(self.ar_dict[str(message.guild.id)][rgx])
-                    except asyncio.TimeoutError:
-                        pass
+            if message.author != self.bot.user:
+                if str(message.guild.id) in self.ar_dict:
+                    for rgx in self.ar_dict[str(message.guild.id)]:
+                        try:
+                            async with async_timeout.timeout(2):
+                                if re.match(rgx, message.content):
+                                    await message.channel.send(self.ar_dict[str(message.guild.id)][rgx])
+                        except asyncio.TimeoutError:
+                            pass
 
         bot.add_listener(autoreact, 'on_message')
 
@@ -65,7 +66,7 @@ class Autoreact():
         else:  # If emote *was* valid emoji, deemojize
             emoji_str = emoji.demojize(emote)
 
-        self.ar_dict[str(ctx.guild.id)][rgx] = emoji_str
+        self.ar_dict[str(ctx.guild.id)][rgx] = str(emoji_str)
 
         await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.ar_dict, "autoreact.json")
 
