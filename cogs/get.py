@@ -22,7 +22,7 @@ class Get():
         self.cache_dir = "cache/"
         self.safe_token = json.load(open("token.json"))["safe_token"]
 
-    @commands.command(pass_context=True)
+    @commands.command()
     async def get(
             self,
             ctx: commands.Context,

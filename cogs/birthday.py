@@ -33,14 +33,15 @@ class Birthday:
             ctx: commands.Context
     ):
         if ctx.invoked_subcommand is None:
-            try:
-                converter = commands.MemberConverter()
-                member = await converter.convert(
-                    ctx,
-                    ctx.subcommand_passed if ctx.subcommand_passed is not None else ""
-                )
-            except commands.BadArgument as e:
-                raise e
+            if ctx.subcommand_passed is None:
+                raise commands.CommandError("Please specify a subcommand!")
+
+            converter = commands.MemberConverter()
+            member = await converter.convert(
+                ctx,
+                ctx.subcommand_passed if ctx.subcommand_passed is not None else ""
+            )
+
             try:
                 bd = self.bdays[str(member.id)]
                 await ctx.send(embed=discord.Embed().set_footer(

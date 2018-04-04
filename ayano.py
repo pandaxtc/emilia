@@ -5,6 +5,7 @@ import os
 import random
 import sys
 import time
+import re
 from logging import handlers
 
 import discord
@@ -44,6 +45,7 @@ bot.success_icon = "https://i.imgur.com/JSWM55t.png"
 bot.denial_icon = "https://i.imgur.com/gOIGrSV.png"
 
 command_start_time = {}
+itsjoke_on = False
 
 
 @bot.event
@@ -51,6 +53,29 @@ async def on_ready():
     ayano_logger.info('Logged in as <' + bot.user.name + "> <" + str(bot.user.id) + ">")
     ayano_logger.info("Running on discord.py v" + discord.__version__)
     await bot.change_presence(activity=discord.Activity(name="Beta than ever!", type=0))
+
+
+@bot.command()
+async def itsjoke(ctx):
+    global itsjoke_on
+    if ctx.guild.id == 271512274647121921:
+        c = commands.EmojiConverter()
+        e = await c.convert(ctx, "<:itsjoke:427973801570074635>")
+        async def ijl(message):
+            if ctx.guild.id == 271512274647121921:
+                if re.match("it'?s ?joke", message.content, re.IGNORECASE):
+                    await message.add_reaction(e)
+
+        if not itsjoke_on:
+            itsjoke_on = True
+            bot.add_listener(ijl, "on_message")
+            await ctx.send("its joke!")
+        elif itsjoke_on:
+            itsjoke_on = False
+            bot.remove_listener(ijl)
+            await ctx.send("its not joke...")
+    else:
+        await ctx.send("its joke!")
 
 
 # It's alive!
