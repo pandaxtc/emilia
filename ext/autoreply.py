@@ -16,24 +16,31 @@ class Autoreact():
     def __init__(self, bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
-        with open("autoreact.json", "r") as f:
+
+        with open("autoreply.json", "r", encoding='utf-8') as f:
             self.ar_dict = json.load(f)
 
-        async def autoreact(message):
+        async def ar_listener(message):
             if message.author != self.bot.user:
                 if str(message.guild.id) in self.ar_dict:
+                    logger.info(f"Message \"{message.content}\"<{message.id}> in autoreply guild. Checking matches:")
                     for rgx in self.ar_dict[str(message.guild.id)]:
+                        logger.info(f"Checking {rgx}...")
                         try:
                             async with async_timeout.timeout(2):
-                                if re.match(rgx, message.content):
+                                if re.match(rgx, message.content, re.IGNORECASE):
+                                    logger.info(f"Autoreply hit on message <{message.id}> on regex {rgx}.")
                                     await message.channel.send(self.ar_dict[str(message.guild.id)][rgx])
                         except asyncio.TimeoutError:
-                            pass
+                            logger.info(f"Timeout on message <{message.id}> on regex {rgx}.")
 
-        bot.add_listener(autoreact, 'on_message')
+        bot.add_listener(ar_listener, 'on_message')
+
+    async def on_ready(self):
+        logger.info(f"Registered autoreplies: {self.ar_dict}")
 
     @commands.group(aliases=["ar"])
-    async def autoreact(
+    async def autoreply(
             self,
             ctx: commands.Context,
     ):
@@ -44,39 +51,35 @@ class Autoreact():
             if ctx.subcommand_passed is None:
                 raise commands.CommandError("Please specify a subcommand!")
 
-    @autoreact.group()
+    @autoreply.group(alises=["ls"])
+    async def list(
+            self,
+            ctx: commands.Context
+    ):
+        """List autoreacts for this server."""
+        await ctx.trigger_typing()
+
+
+    @autoreply.group()
     async def add(
             self,
             ctx: commands.Context,
             rgx: str,
-            emote: str
+            reply: str
     ):
         await ctx.trigger_typing()
 
-        # Check if emote is a unicode emoji
-        valid_emoji = emote in emoji.UNICODE_EMOJI
+        self.ar_dict[str(ctx.guild.id)][rgx] = reply
 
-        # If emote wasn't a unicode emoji, check for custom emoji
-        if not valid_emoji:
-            try:
-                converter = commands.EmojiConverter()
-                emoji_str = await converter.convert(ctx, emote)
-            except commands.BadArgument as e:
-                raise e  # If was not custom emoji, raise exception and leave command
-        else:  # If emote *was* valid emoji, deemojize
-            emoji_str = emoji.demojize(emote)
-
-        self.ar_dict[str(ctx.guild.id)][rgx] = str(emoji_str)
-
-        await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.ar_dict, "autoreact.json")
+        await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.ar_dict, "autoreply.json")
 
         await ctx.send(embed=discord.Embed().set_footer(
-            text="Added autoreact {}!".format(rgx),
+            text=f"Added autoreply {rgx}!",
             icon_url="https://i.imgur.com/JSWM55t.png"
         ))
 
-    @autoreact.group()
-    async def rm(
+    @autoreply.group(aliases=["rm"])
+    async def remove(
             self,
             ctx: commands.Context,
             rgx: str
@@ -87,10 +90,10 @@ class Autoreact():
         except KeyError:
             raise commands.CommandError("Autoreact " + rgx + " not found.")
 
-        await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.ar_dict, "autoreact.json")
+        await asyncio.get_event_loop().run_in_executor(None, self.write_to_json, self.ar_dict, "autoreply.json")
 
         await ctx.send(embed=discord.Embed().set_footer(
-            text="Removed autoreact {}!".format(rgx),
+            text=f"Removed autoreply {rgx}!",
             icon_url="https://i.imgur.com/JSWM55t.png"
         ))
 
@@ -100,7 +103,7 @@ class Autoreact():
             file: str
     ):
         with open(file, "w") as f:
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
 
 def setup(bot):

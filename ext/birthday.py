@@ -26,6 +26,8 @@ class Birthday:
         for guild in self.bd_guilds:
             asyncio.ensure_future(self.bd_chk(int(guild), int(self.bd_guilds[guild])))
 
+    # TODO: oh god please optimise
+
     @commands.group(aliases=["bd", "bday"])
     async def birthday(
             self,
