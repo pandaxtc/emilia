@@ -19,8 +19,8 @@ class Get():
     def __init__(self, bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
-        self.cache_dir = "cache/"
-        self.safe_token = json.load(open("config.json"))["safe_token"]
+        self.cache_dir = "../cache/"
+        self.safe_token = json.load(open("../config.json"))["safe_token"]
 
     @commands.command()
     async def get(

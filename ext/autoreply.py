@@ -8,16 +8,25 @@ import re
 
 import emoji
 from discord.ext import commands
+from concurrent.futures import ProcessPoolExecutor, TimeoutError
 
 logger = logging.getLogger("discord.ayano." + __name__)
 
 
-class Autoreact():
+# Processes communicate through serializable objects only; re.match does not return one
+def match_wrapper(*args):
+    if re.match(*args):
+        return True
+    else:
+        return False
+
+
+class Autoreply():
     def __init__(self, bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
 
-        with open("autoreply.json", "r", encoding='utf-8') as f:
+        with open("../ext/autoreply.json", "r", encoding='utf-8') as f:
             self.ar_dict = json.load(f)
 
         async def ar_listener(message):
@@ -26,13 +35,21 @@ class Autoreact():
                     logger.info(f"Message \"{message.content}\"<{message.id}> in autoreply guild. Checking matches:")
                     for rgx in self.ar_dict[str(message.guild.id)]:
                         logger.info(f"Checking {rgx}...")
+                        pool = ProcessPoolExecutor(1)
+                        result = False
                         try:
-                            async with async_timeout.timeout(2):
-                                if re.match(rgx, message.content, re.IGNORECASE):
-                                    logger.info(f"Autoreply hit on message <{message.id}> on regex {rgx}.")
-                                    await message.channel.send(self.ar_dict[str(message.guild.id)][rgx])
-                        except asyncio.TimeoutError:
-                            logger.info(f"Timeout on message <{message.id}> on regex {rgx}.")
+                            async with async_timeout.timeout(1.5):
+                                result = await bot.loop.run_in_executor(pool, match_wrapper, rgx, message.content,
+                                                                        re.IGNORECASE)
+                        except TimeoutError:
+                            for pid in pool._processes:
+                                pool._processes[pid].terminate()
+                            logger.debug(f"Timeout on message <{message.id}> on regex {rgx}.")
+                        if result:
+                            logger.debug(f"Autoreply hit on message <{message.id}> on regex {rgx}.")
+                            await message.channel.send(self.ar_dict[str(message.guild.id)][rgx])
+                        else:
+                            logger.debug(f"No hit on message <{message.id}> on regex {rgx}.")
 
         bot.add_listener(ar_listener, 'on_message')
 
@@ -58,7 +75,6 @@ class Autoreact():
     ):
         """List autoreacts for this server."""
         await ctx.trigger_typing()
-
 
     @autoreply.group()
     async def add(
@@ -107,4 +123,4 @@ class Autoreact():
 
 
 def setup(bot):
-    bot.add_cog(Autoreact(bot))
+    bot.add_cog(Autoreply(bot))
