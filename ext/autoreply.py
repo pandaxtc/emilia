@@ -6,7 +6,6 @@ import os
 import discord
 import re
 
-import emoji
 from discord.ext import commands
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 
@@ -21,7 +20,7 @@ def match_wrapper(*args):
         return False
 
 
-class Autoreply():
+class Autoreply:
     def __init__(self, bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
