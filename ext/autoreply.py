@@ -57,40 +57,43 @@ class Autoreply:
             self,
             ctx: commands.Context,
     ):
-        """Configure autoreact for this server."""
+        """Configure autoreply for this server."""
         await ctx.trigger_typing()
 
         if ctx.invoked_subcommand is None:
-            if ctx.subcommand_passed is None:
-                raise commands.CommandError("Please specify a subcommand!")
+            raise commands.CommandError("Please specify a subcommand!")
 
-    @autoreply.command
+    @autoreply.command()
     async def toggle(
             self,
             ctx: commands.Context
     ):
-        """Toggles autoreact for this server."""
+        """Toggles autoreply for this server."""
         await ctx.trigger_typing()
 
         guild = await db.get_guild(ctx.guild.id)
-        await guild.update(autoreact_on=not guild.autoreply_on_on).apply()
+        await guild.update(autoreply_on=(not guild.autoreply_on)).apply()
 
-        state = "on" if not guild.autoreply_on else "off"
+        state = "ON" if guild.autoreply_on else "OFF"
         await ctx.send(embed=discord.Embed().set_footer(
             text=f"Turned {state} autoreplies!",
             icon_url="https://i.imgur.com/JSWM55t.png"
         ))
-
 
     @autoreply.command(alises=["ls"])
     async def list(
             self,
             ctx: commands.Context
     ):
-        """Lists autoreacts for this server."""
+        """Lists autoreplies for this server."""
         await ctx.trigger_typing()
 
+        autoreply_on = await db.Guild.select("autoreply_on").where(db.Guild.id == ctx.guild.id).gino.scalar()
+        state = "ON" if autoreply_on else "OFF"
+
         autoreplies = await db.get_all_autoreplies(ctx.guild.id)
+        if len(autoreplies) < 1:
+            raise commands.CommandError("No configured autoreplies!")
 
         out = discord.Embed()
         if ctx.guild.icon_url != "":
@@ -104,6 +107,11 @@ class Autoreply:
                 name=autoreply.regex,
                 value=autoreply.reply
             )
+        out.set_footer(
+            text=f"Autoreplies {state}",
+            icon_url=("https://i.imgur.com/JSWM55t.png" if autoreply_on else "https://i.imgur.com/gOIGrSV.png")
+        )
+
         await ctx.send(embed=out)
 
     @autoreply.command()

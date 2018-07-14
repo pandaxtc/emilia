@@ -19,7 +19,7 @@ class Error:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
-        self.taboo = os.environ["TABOO"]  # used for hiding names from stack traces
+        self.taboo = os.environ["TABOO"] if "TABOO" in os.environ else ""  # used for hiding names from stack traces
 
         self.warning_icon = "https://i.imgur.com/4o1srPK.png"
         self.success_icon = "https://i.imgur.com/JSWM55t.png"
