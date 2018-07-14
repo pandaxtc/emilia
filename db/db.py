@@ -10,10 +10,11 @@ from db.models.user import User
 from db.models.guild import Guild
 from db.models.autoreply import Autoreply
 
-asyncio.ensure_future(db.set_bind(os.environ["DATABASE_URL"]))
-
+asyncio.get_event_loop().run_until_complete(db.set_bind(os.environ["DATABASE_URL"]))
 
 # TODO: implement caching
+
+asyncio.get_event_loop().run_until_complete(db.gino.create_all())
 
 
 # User ops
