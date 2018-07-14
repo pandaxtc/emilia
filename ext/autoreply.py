@@ -37,8 +37,8 @@ class Autoreply:
                         pool = ProcessPoolExecutor(1)
                         result = False
                         try:
-                            async with async_timeout.timeout(0.5):
-                                result = await bot.loop.run_in_executor(pool, match_wrapper, rgx, message.content,
+                            async with async_timeout.timeout(0.2):
+                                result = await asyncio.get_event_loop().run_in_executor(pool, match_wrapper, rgx, message.content,
                                                                         re.IGNORECASE)
                         except TimeoutError:
                             for pid in pool._processes:
