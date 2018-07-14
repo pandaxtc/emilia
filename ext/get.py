@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import json
 import logging
 import os
 import time
@@ -15,12 +14,13 @@ from discord.ext import commands
 logger = logging.getLogger("discord.ayano." + __name__)
 
 
-class Get():
+class Get:
     def __init__(self, bot):
         self.bot = bot
-        self.dir = os.path.dirname(__file__)
-        self.cache_dir = "../cache/"
-        self.safe_token = json.load(open("../config.json"))["safe_token"]
+        self._upload_url = "https://safe.moe/api/upload"
+        self._safe_token = os.environ["SAFE_TOKEN"]
+        if not os.path.exists("ext/cache/"):
+            os.mkdir("ext/cache/")
 
     @commands.command()
     async def get(
@@ -28,116 +28,107 @@ class Get():
             ctx: commands.Context,
             count: int
     ):
-        """Sends the user links to the last  <x> attachments sent in the channel."""
+        """Sends the user links to the last <x> attachments sent in the channel."""
         await ctx.trigger_typing()
 
-        dl_dir = os.path.join(self.dir, self.cache_dir, datetime.datetime.now().strftime("%Y%m%d%H%M%S.%f"))
+        if not 1 <= count <= 20:
+            raise commands.CommandError(f"Usage: {str(ctx.command)} <number> where number ∈ (0,20]")
 
-        if 1 <= count <= 20:
-            os.mkdir(dl_dir)
-            counter = 0
-            dupes = {}
-            logger.info("Command invoked, searching...")
-            start = time.time()
+        dl_dir = os.path.join(
+            os.path.dirname(__file__),
+            "cache/",
+            datetime.datetime.now().strftime("%Y%m%d%H%M%S.%f")
+        )
+        os.mkdir(dl_dir)
 
-            async for message in ctx.history(limit=5000):
-                #print(message)
-                if message.author != ctx.message.author:
-                    for attachment in message.attachments:
-                        print(attachment)
-                        if counter < count:
-                            with async_timeout.timeout(10):
-                                filename = attachment.filename
-                                id = attachment.id
-                                filepath = os.path.join(
-                                    dl_dir,
-                                    filename if filename not in dupes
-                                    else (
-                                            filename +
-                                            os.path.splitext(filename)[0] +
-                                            "(%s)" % dupes[filename] +
-                                            os.path.splitext(filename)[1]
-                                    )
-                                )
-                                logger.info("Now handling download of file %s <%s>", filename, id)
+        counter = 0
+        dupes = {}
+        dl_start = time.time()  # Benchmarking
 
-                                try:
-                                    with open(filepath, 'wb') as f:
-                                        await attachment.save(f)
-                                    if filename in dupes:
-                                        dupes[filename] += 1
-                                    else:
-                                        dupes[filename] = 1
-                                except IOError as e:
-                                    logger.warning("File error on file %s, id <%s>!", filename, id,
-                                                   exc_info=True)
-
-                            counter += 1
-                        else:
-                            break
-                    if counter >= int(count):
+        async for message in ctx.history(limit=5000):
+            if counter >= count:
+                break
+            if message.author != ctx.message.author:
+                for attachment in message.attachments:
+                    if counter >= count:
                         break
+                    with async_timeout.timeout(3):
+                        filename = attachment.filename
+                        filepath = os.path.join(
+                            dl_dir,
+                            filename if filename not in dupes
+                            else (
+                                    filename +
+                                    os.path.splitext(filename)[0] +
+                                    "(%s)" % dupes[filename] +
+                                    os.path.splitext(filename)[1]
+                            )
+                        )
+                        logger.info(f"Now handling download of file {filename} <{attachment.id}>")
 
-            end = time.time()
+                        try:
+                            with open(filepath, 'wb') as f:
+                                await attachment.save(f)
+                            if filename in dupes:
+                                dupes[filename] += 1
+                            else:
+                                dupes[filename] = 1
+                        except IOError:
+                            logger.warning(f"File error on file {filename}, id <{attachment.id}>!", exc_info=True)
 
-            if counter != 0:
-                logger.info("Download complete! Time elapsed: %f", end - start)
+                    counter += 1
 
-                logger.info("Zipping %d files...", counter)
-                start = time.time()
+        dl_end = time.time()  # Benchmarking
+        logger.info(f"Download complete! Time elapsed: {dl_end - dl_start}")
 
-                e = ThreadPoolExecutor()
-                await asyncio.get_event_loop().run_in_executor(e, self.zip, dl_dir, dl_dir)
+        if counter == 0:
+            logger.info(f"No images found. Time elapsed: {dl_end - dl_start}")
+            os.rmdir(dl_dir)
+            raise commands.CommandError("No compatible images found!")
 
-                end = time.time()
-                logger.info("Zipping complete! Time elapsed: %f", end - start)
+        logger.info(f"Zipping {counter} files...")
+        zip_start = time.time()  # Benchmarking
 
-                logger.info("Uploading %s.zip", os.path.basename(dl_dir))
-                start = time.time()
+        e = ThreadPoolExecutor()
+        await asyncio.get_event_loop().run_in_executor(e, self.zip_dir, dl_dir, dl_dir)
 
-                with open(dl_dir + ".zip", "rb") as f:
-                    url = "https://safe.moe/api/upload"
-                    data = aiohttp.FormData(quote_fields=False)
-                    data.add_field("files[]", f)
-                    async with aiohttp.ClientSession() as session:
-                        print("begin!")
-                        async with session.post(url,
-                                                headers={
-                                                    "token":
-                                                        self.safe_token
-                                                }, data=data) as r:
-                            print(await r.text())
-                            result = await r.json()
+        zip_end = time.time()  # Benchmarking
+        logger.info(f"Zipping complete! Time elapsed: {zip_end - zip_start}")
 
-                end = time.time()
-                logger.info("Upload complete! Time elapsed: %f", end - start)
-                await ctx.send(embed=discord.Embed().set_footer(
-                    text="File upload complete ;)",
-                    icon_url="https://i.imgur.com/JSWM55t.png"
-                ))
-                await ctx.author.send("Here's your file~: " + result["files"][0]["url"])
+        logger.info(f"Uploading {os.path.basename(dl_dir)}.zip")
+        upload_start = time.time()  # Benchmarking
 
-            else:
-                logger.info("No images found. Time elapsed: %f", end - start)
-                os.rmdir(dl_dir)
-                raise commands.CommandError("No compatible images found :(")
+        with open(dl_dir + ".zip", "rb") as f:
+            data = aiohttp.FormData(quote_fields=False)
+            data.add_field("files[]", f)
+            async with aiohttp.ClientSession() as session:
+                async with session.post(self._upload_url,
+                                        headers={
+                                            "token":
+                                                self._safe_token
+                                        }, data=data) as r:
+                    result = await r.json()
+        zip_url = result["files"][0]["url"]
 
-        else:
-            raise commands.CommandError("Usage: " + str(ctx.command) + " <number> where number ∈ (0,20]")
+        upload_end = time.time()  # Benchmarking
+        logger.info(f"Upload complete! Time elapsed: {upload_end - upload_start}")
+        await ctx.send(embed=discord.Embed().set_footer(
+            text="File upload complete ;)",
+            icon_url="https://i.imgur.com/JSWM55t.png"
+        ))
+        await ctx.author.send(f"Here's your file~: {zip_url}")
 
-    def zip(self, dir, name):
-        print(dir, name)
+    def zip_dir(self, dir, name):
         zip = ZipFile(name + ".zip", "w")
         for root, dirs, files in os.walk(dir):
             for file in files:
                 zip.write(os.path.join(root, file), os.path.basename(os.path.join(root, file)))
         zip.close()
-        print("all done.")
 
     @commands.command()
     async def rmcache(self):
-        os.rmdir(self.cache_dir)
-        os.mkdir(self.cache_dir)
+        os.rmdir("cache/")
+        os.mkdir("cache/")
 
 
 def setup(bot):
