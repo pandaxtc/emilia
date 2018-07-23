@@ -7,7 +7,7 @@ from discord.ext import commands
 logger = logging.getLogger("discord.lovedrop." + __name__)
 
 
-class Test:
+class Dev:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.dir = os.path.dirname(__file__)
@@ -19,6 +19,7 @@ class Test:
             footer_icon="https://i.imgur.com/JSWM55t.png",
             footer_text="Test text."
     ):
+        """Send a test dialog. Usage: embed_footer <icon_url> <text>"""
         embed = discord.Embed()
         embed.set_footer(
             text=footer_text,
@@ -32,6 +33,7 @@ class Test:
             self,
             ctx: commands.Context
     ):
+        """Raise an exception."""
         raise Exception("This is a test exception.")
 
     @commands.command()
@@ -42,8 +44,9 @@ class Test:
             *,
             statement: str
     ):
+        """Dumb eval, locked to bot owner only. Do not use!"""
         eval(statement)
 
 
 def setup(bot):
-    bot.add_cog(Test(bot))
+    bot.add_cog(Dev(bot))

@@ -1,13 +1,9 @@
-import asyncio
-import json
-import async_timeout
 import logging
 import os
-import discord
 import re
 
+import discord
 from discord.ext import commands
-from concurrent.futures import ProcessPoolExecutor, TimeoutError
 
 from db import db
 
@@ -27,28 +23,18 @@ class Autoreply:
         self.bot = bot
         self.dir = os.path.dirname(__file__)
 
-        async def ar_listener(message):
+        async def ar_listener(message: discord.Message):
             if message.author != self.bot.user:
                 guild = await db.get_guild(message.guild.id)
                 if guild.autoreply_on:
-                    logger.debug(f"Message \"{message.content}\"<{message.id}> in autoreply guild. Checking matches:")
+                    logger.debug(f"Message <{message.id}> in autoreply guild. Checking matches:")
                     for autoreply in (await db.get_all_autoreplies(message.guild.id)):
-                        rgx = autoreply.regex
-                        pool = ProcessPoolExecutor(1)
-                        result = False
-                        try:
-                            async with async_timeout.timeout(0.2):
-                                result = await asyncio.get_event_loop().run_in_executor(pool, match_wrapper, rgx, message.content,
-                                                                        re.IGNORECASE)
-                        except TimeoutError:
-                            for pid in pool._processes:
-                                pool._processes[pid].terminate()
-                            logger.debug(f"Timeout on message <{message.id}> on regex {rgx}.")
-                        if result:
-                            logger.debug(f"Autoreply hit on message <{message.id}> on regex {rgx}.")
+                        pattern = autoreply.pattern
+                        if pattern in message.content:
+                            logger.debug(f"Autoreply hit on message <{message.id}> on pattern {pattern}")
                             await message.channel.send(autoreply.reply)
                         else:
-                            logger.debug(f"No hit on message <{message.id}> on regex {rgx}.")
+                            logger.debug(f"No hit on message <{message.id}> on pattern {pattern}.")
 
         bot.add_listener(ar_listener, 'on_message')
 
@@ -104,7 +90,7 @@ class Autoreply:
         )
         for autoreply in autoreplies:
             out.add_field(
-                name=autoreply.regex,
+                name=f"[{autoreply.id}] {autoreply.pattern}",
                 value=autoreply.reply
             )
         out.set_footer(
@@ -118,10 +104,16 @@ class Autoreply:
     async def add(
             self,
             ctx: commands.Context,
-            rgx: str,
+            pattern: str,
             reply: str
     ):
         await ctx.trigger_typing()
+
+        if reply == "" or pattern == "":
+            raise commands.CommandError("Pattern or reply cannot be empty!")
+
+        if len(reply) > 1000 or len(pattern) > 1000:
+            raise commands.CommandError("Pattern or reply cannot be longer than 1000 characters!")
 
         max_count_autoreplies = int(os.environ["MAX_AUTOREPLIES"])
         count_autoreplies = len(await db.get_all_autoreplies(ctx.guild.id))
@@ -129,7 +121,7 @@ class Autoreply:
         if count_autoreplies > max_count_autoreplies:
             raise commands.CommandError(f"You cannot have more than {max_count_autoreplies} autoreplies!")
 
-        autoreply = db.Autoreply(guild_id=ctx.guild.id, regex=rgx, reply=reply)
+        autoreply = db.Autoreply(guild_id=ctx.guild.id, pattern=pattern, reply=reply)
         await db.add_autoreply(autoreply)
 
         await ctx.send(embed=discord.Embed().set_footer(
@@ -141,15 +133,15 @@ class Autoreply:
     async def remove(
             self,
             ctx: commands.Context,
-            rgx: str
+            id: int
     ):
         await ctx.trigger_typing()
 
-        autoreply = await db.get_autoreply(ctx.guild.id, rgx)
+        autoreply = await db.get_autoreply(ctx.guild.id, id)
         if autoreply is None:
             raise commands.CommandError("Autoreply not found!")
 
-        await db.delete_autoreply(ctx.guild.id, rgx)
+        await db.delete_autoreply(ctx.guild.id, id)
 
         await ctx.send(embed=discord.Embed().set_footer(
             text=f"Removed autoreply!",

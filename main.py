@@ -1,12 +1,11 @@
 import datetime
-import traceback
 import logging
 import os
 import sys
 import time
+import traceback
 from logging import handlers
 
-import asyncio
 import discord
 from discord.ext import commands
 
@@ -155,10 +154,6 @@ if __name__ == "__main__":
     async def on_ready():
         for guild in bot.guilds:
             await db.add_guild(db.Guild(id=guild.id))
-
-        for autoreply in (await db.get_all_autoreplies(374158830831140866)):
-            print(autoreply)
-
         logger.info(f" Logged in as <{bot.user.name}> <{bot.user.id}> ({time.time() - start} seconds)")
         logger.info(f"Running on discord.py v{discord.__version__}")
         await bot.change_presence(activity=discord.Activity(name=str(playing), type=0))
@@ -170,7 +165,8 @@ if __name__ == "__main__":
 
     @bot.event
     async def on_guild_remove(guild: discord.Guild):
-        await db.remove_guild
+        db_guild = await db.get_guild(guild.id)
+        await db.remove_guild(db_guild)
 
     @bot.before_invoke
     async def pre(ctx: commands.Context):

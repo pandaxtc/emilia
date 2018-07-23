@@ -1,14 +1,12 @@
 import asyncio
 import os
 
-import gino
-from sqlalchemy.sql import exists
 import asyncpg.exceptions
 
 from db.models.base import db
-from db.models.user import User
-from db.models.guild import Guild
 from db.models.autoreply import Autoreply
+from db.models.guild import Guild
+from db.models.user import User
 
 asyncio.get_event_loop().run_until_complete(db.set_bind(os.environ["DATABASE_URL"]))
 
@@ -56,8 +54,8 @@ async def add_autoreply(autoreply: Autoreply):
         return False
 
 
-async def get_autoreply(guild_id: int, rgx: str):
-    return await Autoreply.get((guild_id, rgx))
+async def get_autoreply(guild_id: int, id: int):
+    return await Autoreply.get((id, guild_id))
 
 
 # space-inefficient. assume a sane limit on the number of rows this query returns.
@@ -65,5 +63,5 @@ async def get_all_autoreplies(guild_id: int):
     return await Autoreply.query.where(Autoreply.guild_id == guild_id).gino.all()
 
 
-async def delete_autoreply(guild_id: int, rgx: str):
-    return await Autoreply.delete.where((Autoreply.guild_id == guild_id) & (Autoreply.regex == rgx)).gino.status()
+async def delete_autoreply(guild_id: int, id: int):
+    return await Autoreply.delete.where((Autoreply.guild_id == guild_id) & (Autoreply.id == id)).gino.status()
