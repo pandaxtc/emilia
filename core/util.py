@@ -4,7 +4,7 @@ import os
 import discord
 from discord.ext import commands
 
-logger = logging.getLogger("discord.lovedrop." + __name__)
+logger = logging.getLogger("discord.emilia." + __name__)
 
 
 class Util:
@@ -80,9 +80,6 @@ class Util:
     ):
         await ctx.trigger_typing()
 
-        if limit > 5000:
-            raise commands.CommandError("Limit cannot be greater than 1000!")
-
         if channel is None:
             channel = ctx.channel
 
@@ -106,6 +103,7 @@ class Util:
         most_active_users = sorted(count_user_messages, key=count_user_messages.get, reverse=True)[:5]
 
         user_string = f"for {user.display_name}" if user is not None else ""
+        cap_string = "(capped)" if count_total_messages == limit else ""
 
         out = discord.Embed()
         if ctx.guild.icon_url != "":
@@ -121,7 +119,7 @@ class Util:
                 value=f"{count} messages | {count/count_total_messages*100:.2f}%"
             )
         out.set_footer(
-            text=f"Total messages checked: {count_total_messages}",
+            text=f"Total messages checked: {count_total_messages} {cap_string}",
         )
 
         await ctx.send(embed=out)

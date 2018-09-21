@@ -96,11 +96,11 @@ if __name__ == "__main__":
     log_dir = os.path.join(os.path.dirname(__file__), "./log/")
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-    logfile_name = "ayano-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    logfile_name = "emilia-" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     root_logger = logging.getLogger("discord")
     root_logger.setLevel(logging.DEBUG)
-    logger = logging.getLogger("discord.ayano")
+    logger = logging.getLogger("discord.emilia")
     logger.setLevel(logging.DEBUG)
 
     file_handler = handlers.TimedRotatingFileHandler(
@@ -163,10 +163,12 @@ if __name__ == "__main__":
     async def on_guild_join(guild: discord.Guild):
         await db.add_guild(db.Guild(id=guild.id))
 
+
     @bot.event
     async def on_guild_remove(guild: discord.Guild):
         db_guild = await db.get_guild(guild.id)
         await db.remove_guild(db_guild)
+
 
     @bot.before_invoke
     async def pre(ctx: commands.Context):

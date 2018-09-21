@@ -4,7 +4,7 @@ import os
 import discord
 from discord.ext import commands
 
-logger = logging.getLogger("discord.lovedrop." + __name__)
+logger = logging.getLogger("discord.emilia." + __name__)
 
 
 class Dev:

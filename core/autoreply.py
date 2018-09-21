@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from db import db
 
-logger = logging.getLogger("discord.ayano." + __name__)
+logger = logging.getLogger("discord.emilia." + __name__)
 
 
 # Processes communicate through serializable objects only; re.match does not return one

@@ -1,4 +1,4 @@
-# ayano
+# emilia
 A basic discord utility bot. Default prefix: **$**
 
 All downloads are stored in `cache/`.

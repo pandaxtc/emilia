@@ -11,7 +11,7 @@ import async_timeout
 import discord
 from discord.ext import commands
 
-logger = logging.getLogger("discord.ayano." + __name__)
+logger = logging.getLogger("discord.emilia." + __name__)
 
 
 class Get:
@@ -19,8 +19,8 @@ class Get:
         self.bot = bot
         self._upload_url = "https://safe.moe/api/upload"
         self._safe_token = os.environ["SAFE_TOKEN"]
-        if not os.path.exists("ext/cache/"):
-            os.mkdir("ext/cache/")
+        if not os.path.exists("core/cache/"):
+            os.mkdir("core/cache/")
 
     @commands.command()
     async def get(
