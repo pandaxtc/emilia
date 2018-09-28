@@ -71,7 +71,8 @@ class Error:
                     )).replace(
                         self.taboo,
                         "<filepath_censored>"
-                    ))[:960]
+                    )[:960]
+                )
             ))
             return
 
