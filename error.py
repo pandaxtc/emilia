@@ -32,8 +32,9 @@ class Error:
         message = ""
 
         # Handle known cases (poor OOP, look for ways to reimplement)
-        # if isinstance(exception, commands.CommandNotFound):
-        #    message = "Command {} not found!".format(ctx.invoked_with)
+        if isinstance(exception, commands.CommandNotFound):
+            # message = "Command {} not found!".format(ctx.invoked_with)
+            return
         if isinstance(exception, commands.CheckFailure):
             icon = self.denial_icon
         elif isinstance(exception, commands.MissingRequiredArgument):
