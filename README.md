@@ -1,10 +1,6 @@
-<<<<<<< HEAD
 # emilia
-A basic discord utility bot. Default prefix: **$**
-=======
-# ayano
->>>>>>> 7a4c12a28058cf332be5057a110af169c3073643
 
+A basic discord utility bot. Default prefix: **$**
 The latest and greatest half-elf Discord bot. Designed for use with Heroku. Currently an extreme WIP.
 
 ## Installing
