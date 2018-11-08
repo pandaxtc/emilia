@@ -1,0 +1,27 @@
+{
+  "name": "emilia",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^11.4.2",
+    "dotenv": "^6.1.0",
+    "minimist": "^1.2.0",
+    "typescript": "^3.1.4"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^4.0.3",
+    "@types/minimist": "^1.2.0",
+    "@types/node": "^10.12.2",
+    "tslint": "^5.11.0",
+    "tslint-config-standard": "^8.0.1"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.0"
+  }
+}
