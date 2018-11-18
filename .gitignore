@@ -1,5 +1,7 @@
 .idea/
 bin/
+dist/
+ormconfig.json
 
 # Logs
 logs

@@ -1,0 +1,11 @@
+"use strict";
+exports.__esModule = true;
+var Discord = require("discord.js");
+var onMessage_1 = require("./handlers/onMessage");
+var onReady_1 = require("./handlers/onReady");
+exports.client = new Discord.Client();
+var dotenv = require("dotenv");
+dotenv.config();
+exports.client.on('ready', onReady_1["default"]);
+exports.client.on('message', onMessage_1["default"]);
+exports.client.login(process.env.DISCORD_TOKEN);

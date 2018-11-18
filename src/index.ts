@@ -1,14 +1,18 @@
 import * as Discord from 'discord.js'
-import onMessage from './handlers/onMessage'
-import onReady from './handlers/onReady'
+import * as dotenv from 'dotenv'
+import { createConnection } from 'typeorm'
+import { initRepositories } from './db/db'
+import { onMessage } from './handlers/onMessage'
+import { onReady } from './handlers/onReady'
 
 export const client = new Discord.Client()
 
-import * as dotenv from 'dotenv'
 dotenv.config()
 
-client.on('ready', onReady)
-client.on('message', onMessage)
+createConnection().then((connection) => {
+  initRepositories()
 
-
-client.login(process.env.DISCORD_TOKEN)
+  client.on('ready', onReady)
+  client.on('message', onMessage)
+  client.login(process.env.DISCORD_TOKEN)
+})
