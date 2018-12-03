@@ -1,7 +1,7 @@
 import * as Discord from 'discord.js'
 import { readdirSync } from 'fs'
 import minimist from 'minimist'
-import { userRepository } from '../db/db'
+import { guildRepository, userRepository } from '../db/db'
 import {
   CommandArgumentMissingError,
   CommandArgumentSetIncompleteError,
@@ -33,6 +33,7 @@ export type FlagParameter = Parameter & { flag: string }
 
 export type Command = {
   names: string[],
+  description?: string,
   category: string,
   target: Function,
   subcommands?: Command[]
@@ -132,16 +133,17 @@ async function reloadCommands () {
   })
 }
 
-async function parseCommand (message: Discord.Message) {
+async function parseCommand (message: Discord.Message, hasPrefix?: boolean) {
   const content = message.content
-  const prefix = process.env.PREFIX as string
+  const db_guild = await guildRepository.getByID(message.guild.id)
+  const prefix = (db_guild) ? db_guild.prefix : '$'
 
-  if (!content.trim().startsWith(prefix)) {
+  if (hasPrefix && !content.trim().startsWith(prefix)) {
     return
   }
 
   const regex = /(-\w*\s"+.+?"+|-\w*\s[^"]\S*|[^"]\S*|"+.+?"+)\s*/g // argument matching regex https://regex101.com/r/PbjRv6/1
-  let match = regex.exec(message.content)
+  let match = regex.exec(content)
   let splitted: string[] = []
   while (match != null) {
     let s = match[1].trim()
@@ -149,7 +151,7 @@ async function parseCommand (message: Discord.Message) {
       s = s.slice(1, s.length - 1)
     }
     splitted.push(s)
-    match = regex.exec(message.content)
+    match = regex.exec(content)
   }
   splitted = splitted.filter(x => x !== '')
 

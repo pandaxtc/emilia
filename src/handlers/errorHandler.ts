@@ -14,7 +14,7 @@ export async function handleError (context: Context, error: CommandError | Comma
   let errMessage: string = ''
 
   if (error instanceof CommandInvokeError) {
-    console.error(error.error.stack)
+    console.error(error.error)
 
     const trace = `\`\`\`${Discord.Util.splitMessage((error.error.stack as string), { maxLength: 1950, char: '\n' })}\`\`\``
     const out = new Discord.RichEmbed({

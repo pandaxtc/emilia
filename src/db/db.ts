@@ -1,4 +1,4 @@
-import { EntityRepository, getCustomRepository, Repository } from 'typeorm'
+import { createConnection, EntityRepository, getConnection, getCustomRepository, Repository } from 'typeorm'
 import { Autoreply, Guild, User } from './entities'
 
 @EntityRepository(Autoreply)
@@ -31,9 +31,10 @@ export class GuildRepository extends Repository<Guild> {
 
   toggleAutoreply (guild_id: string) {
     return this.findOne(guild_id).then(guild => {
-      if (guild === undefined) return
+      if (guild === undefined) return undefined
       guild.autoreply_on = !guild.autoreply_on
       this.save(guild)
+      return guild.autoreply_on
     })
   }
 
@@ -48,12 +49,14 @@ export class UserRepository extends Repository<User> {
 
 }
 
+export let autoreplyRepository: AutoreplyRepository
+export let guildRepository: GuildRepository
+export let userRepository: UserRepository
+
 export function initRepositories () {
   autoreplyRepository = getCustomRepository(AutoreplyRepository)
   guildRepository = getCustomRepository(GuildRepository)
   userRepository = getCustomRepository(UserRepository)
 }
 
-export let autoreplyRepository: AutoreplyRepository
-export let guildRepository: GuildRepository
-export let userRepository: UserRepository
+const connection = createConnection().then(initRepositories)

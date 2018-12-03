@@ -10,21 +10,21 @@ async function autoreply (context: Context) {
   let guild = (await guildRepository.getByID(context.guild.id)) as Guild
   let autoreplies = await guild.autoreplies
 
-  const embed = new Discord.RichEmbed({ color: 10181046 })
-  embed.setAuthor(
+  const replyEmbed = new Discord.RichEmbed({ color: 10181046 })
+  replyEmbed.setAuthor(
     'Autoreplies',
     process.env.SCROLL_ICON
   )
-  embed.setDescription('Add autoreplies with `autoreply add`, and remove autoreplies with `autoreply rm`!')
+  replyEmbed.setDescription('Add autoreplies with `autoreply add`, and remove autoreplies with `autoreply rm`!')
   autoreplies.forEach((autoreply, index) => {
-    embed.addField(`[${index + 1}]  ${autoreply.pattern}`, autoreply.reply, true)
+    replyEmbed.addField(`[${index + 1}]  ${autoreply.pattern}`, autoreply.reply, true)
   })
-  embed.setFooter(
+  replyEmbed.setFooter(
     `Autoreplies ${guild.autoreply_on ? 'ON' : 'OFF'} for this server!`,
     guild.autoreply_on ? process.env.CHECK_ICON : process.env.X_ICON
   )
 
-  await context.channel.send('', embed)
+  return context.channel.send('', replyEmbed)
 }
 
 async function add (context: Context, pattern: string, reply: string) {
@@ -34,8 +34,8 @@ async function add (context: Context, pattern: string, reply: string) {
   if (guild === undefined) throw new Error('Guild not in database!')
   await autoreplyRepository.createAndSave(guild, pattern, reply)
 
-  const embed = footerEmbed((process.env.CHECK_ICON as string), `Added autoreply ${pattern} <${reply}>!`)
-  await context.channel.send('', embed)
+  const replyEmbed = footerEmbed((process.env.CHECK_ICON as string), `Added autoreply ${pattern} <${reply}>!`)
+  return context.channel.send('', replyEmbed)
 }
 
 async function remove (context: Context, pattern: string) {
@@ -50,10 +50,13 @@ async function toggle (context: Context) {
   if (context.guild === undefined) return
 
   await guildRepository.toggleAutoreply(context.guild.id)
+  const replyEmbed = footerEmbed((process.env.CHECK_ICON as string), 'Toggled autoreply!')
+  return context.channel.send('', replyEmbed)
 }
 
 const addCommand: Command = {
   names: ['add'],
+  description: 'Adds an autoreply.',
   category: 'Utilities',
   target: add,
   params: [
@@ -64,6 +67,7 @@ const addCommand: Command = {
 
 const removeCommand: Command = {
   names: ['remove', 'rm'],
+  description: 'Removes an autoreply.',
   category: 'Utilities',
   target: remove,
   params: [
@@ -73,6 +77,7 @@ const removeCommand: Command = {
 
 const toggleCommand: Command = {
   names: ['toggle'],
+  description: 'Toggles this guild\'s autoreplies.',
   category: 'Utilities',
   target: toggle,
   params: []
@@ -80,6 +85,7 @@ const toggleCommand: Command = {
 
 export const command: Command = {
   names: ['autoreply', 'ar'],
+  description: 'Lists all of this guild\'s autoreplies.',
   category: 'Utilities',
   target: autoreply,
   subcommands: [addCommand, removeCommand, toggleCommand],

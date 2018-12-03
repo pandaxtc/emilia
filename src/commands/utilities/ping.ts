@@ -9,6 +9,6 @@ export const command: Command = {
   category: 'misc',
   target: ping,
   params: [
-    { name: 'a', types: [ParameterType.String] },
+    { name: 'a', types: [ParameterType.String] }
   ]
 }
