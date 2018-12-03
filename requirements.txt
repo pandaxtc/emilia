@@ -1,3 +1,0 @@
--e git://github.com/Rapptz/discord.py.git@rewrite#egg=discord.py
-emoji==0.5.0
-gino==0.7.5
