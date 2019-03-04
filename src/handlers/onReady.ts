@@ -11,5 +11,6 @@ export async function onReady () {
     }
   }
   await CommandHandler.reloadCommands()
+  // TODO: register handlers too
   console.log('')
 }
