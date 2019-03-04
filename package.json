@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "rmdir bin/ && tsc src/index.js"
+    "build": "rmdir dist/ && tsc src/index.js"
   },
   "author": "",
   "license": "ISC",

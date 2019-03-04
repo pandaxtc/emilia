@@ -1,6 +1,7 @@
 import * as Discord from 'discord.js'
 import { readdirSync } from 'fs'
 import minimist from 'minimist'
+import { InterfaceDeclaration } from 'typescript'
 import { guildRepository, userRepository } from '../db/db'
 import {
   CommandArgumentMissingError,
@@ -10,9 +11,9 @@ import {
   CommandInvokeError
 } from '../errors/commandError'
 
-export type TextBasedChannel = Discord.TextChannel | Discord.DMChannel | Discord.GroupDMChannel
+type TextBasedChannel = Discord.TextChannel | Discord.DMChannel | Discord.GroupDMChannel
 
-export enum ParameterType {
+enum ParameterType {
   String = 'string',
   Number = 'number',
   Boolean = 'boolean',
@@ -23,20 +24,20 @@ export enum ParameterType {
   Emoji = 'emoji'
 }
 
-export type Parameter = {
+type Parameter = {
   name: string,
   types: ParameterType[],
   isOptional?: boolean // optional arguments MUST come after all required arguments
 }
 
-export type FlagParameter = Parameter & { flag: string }
+type FlagParameter = Parameter & { flag: string }
 
-export type Command = {
+type Command = {
   names: string[],
   description?: string,
   category: string,
   target: Function,
-  subcommands?: Command[]
+  subcommands?: Command[],
   params: (Parameter)[],
   flagParams?: FlagParameter[], // optional arguments must be marked as optional function parameters
   repeatParams?: Parameter[], // repeated arguments must be placed in args
@@ -44,7 +45,7 @@ export type Command = {
   cooldown?: Cooldown
 }
 
-export class Context {
+class Context {
   public channel: TextBasedChannel
   public guild: Discord.Guild | undefined
 
@@ -135,7 +136,7 @@ async function reloadCommands () {
 
 async function parseCommand (message: Discord.Message, hasPrefix?: boolean) {
   const content = message.content
-  const db_guild = await guildRepository.getByID(message.guild.id)
+  const db_guild = (message.guild) ? await guildRepository.getByID(message.guild.id) : undefined
   const prefix = (db_guild) ? db_guild.prefix : '$'
 
   if (hasPrefix && !content.trim().startsWith(prefix)) {
@@ -143,21 +144,25 @@ async function parseCommand (message: Discord.Message, hasPrefix?: boolean) {
   }
 
   const regex = /(-\w*\s"+.+?"+|-\w*\s[^"]\S*|[^"]\S*|"+.+?"+)\s*/g // argument matching regex https://regex101.com/r/PbjRv6/1
-  let match = regex.exec(content)
-  let splitted: string[] = []
-  while (match != null) {
-    let s = match[1].trim()
-    if (s.charAt(0) === '"' && s.charAt(s.length - 1) === '"') {
-      s = s.slice(1, s.length - 1)
-    }
-    splitted.push(s)
-    match = regex.exec(content)
-  }
-  splitted = splitted.filter(x => x !== '')
+  let matches = content.match(regex)
 
-  const args = minimist(splitted)
+  if (!matches) {
+    return undefined
+  }
+
+  matches = matches.map((match) => {
+    match = match.trim()
+    if (match.charAt(0) === '"' && match.charAt(match.length - 1) === '"') {
+      match = match.slice(1, match.length - 1)
+    }
+    return match
+  })
+
+  console.log(matches)
+
+  const args = minimist(matches)
   console.log(args)
-  let { _, ...optArgs } = args
+  let { _, ...flagArgs } = args
   let reqArgs: string[] = _
   const commandName = reqArgs[0].replace(prefix, '')
   reqArgs = reqArgs.slice(1)
@@ -167,16 +172,18 @@ async function parseCommand (message: Discord.Message, hasPrefix?: boolean) {
 
   const context = new Context(message, commandName)
 
-  return { context, command, reqArgs, optArgs }
+  return { context, command, reqArgs, optArgs: flagArgs }
 }
 
+// TODO: break this up
 async function invokeCommand (context: Context, command: Command, args: string[], flagArgs: { [key: string]: string }): Promise<void> {
   if (context.guild === undefined && !command.allowedInDMs) return
 
   let invokeArgs = [] // arguments to spread into target function call
 
-  let detectedArgs: { parameter: Parameter, arg: string | undefined }[] = []
+  let detectedArgs: { parameter: Parameter, arg: string | undefined }[] = [] // args we've matched to a given parameter
 
+  // detect and invoke subcommands
   if (command.subcommands) {
     const subcommandString = args[0]
     const subcommand = command.subcommands.find((sc) => sc.names.includes(subcommandString))
@@ -190,39 +197,45 @@ async function invokeCommand (context: Context, command: Command, args: string[]
 
   args.reverse()
 
-  for (let index = 0; index < command.params.length; index++) {
-    let param = command.params[index]
-    console.log(index + ' ' + param.types)
-    console.log(args.length)
-    if (args.length === 0 && !param.isOptional) throw new CommandArgumentMissingError(param, command, context)
-    detectedArgs.push({ parameter: param, arg: args.pop() })
-  }
-
-  // detect which optional parameters were passed
-  if (command.flagParams) {
-    for (let optParam of command.flagParams) {
-      if (flagArgs[optParam.flag] !== undefined) {
-        detectedArgs.push({ parameter: optParam, arg: String(flagArgs[optParam.flag]).trim() })
+  // map params to args, ignoring extra arguments
+  command.params.forEach(function (param: Parameter, index: number) {
+    if (args.length === 0) {
+      if (param.isOptional) {
+        detectedArgs.push({ parameter: param, arg: undefined })
       } else {
-        detectedArgs.push({ parameter: optParam, arg: undefined })
+        throw new CommandArgumentMissingError(param, command, context)
       }
     }
+    // console.log(index + ' ' + param.types)
+    // console.log(args.length)
+    detectedArgs.push({ parameter: param, arg: args.pop() })
+  })
+
+  // detect and map flag params to args
+  if (command.flagParams) {
+    command.flagParams.forEach(function (flagParam: FlagParameter) {
+      if (flagArgs[flagParam.flag]) {
+        detectedArgs.push({ parameter: flagParam, arg: flagArgs[flagParam.flag].trim() })
+      } else {
+        detectedArgs.push({ parameter: flagParam, arg: undefined })
+      }
+    })
   }
 
-  console.log(args)
+  // console.log(args)
 
   // repeat parameters
   if (command.repeatParams) {
-    while (args.length > 0) {
-      for (let param of command.repeatParams) {
-        if (args.length === 0) throw new CommandArgumentSetIncompleteError(param, command, context)
-        console.log('putting in repeated argument for ' + param.name)
-        detectedArgs.push({ parameter: param, arg: args.pop() })
-      }
-    }
+    do {
+      command.repeatParams.forEach(function (repeatParam: Parameter) {
+        if (args.length === 0) throw new CommandArgumentSetIncompleteError(repeatParam, command, context)
+        // console.log('putting in repeated argument for ' + param.name)
+        detectedArgs.push({ parameter: repeatParam, arg: args.pop() })
+      })
+    } while (args.length > 0)
   }
 
-  console.log(detectedArgs)
+  // console.log(detectedArgs)
 
   for (let detectedArg of detectedArgs) {
     const param: Parameter = detectedArg.parameter
@@ -259,9 +272,7 @@ async function invokeCommand (context: Context, command: Command, args: string[]
             convertedArg = arg
             break
         }
-        console.log('converted to ' + (typeof convertedArg))
         if ((typeof convertedArg === typeof true) || convertedArg) {
-          console.log(`pushing argument ${convertedArg}`)
           invokeArgs.push(convertedArg)
           break
         }
@@ -282,7 +293,7 @@ async function invokeCommand (context: Context, command: Command, args: string[]
   user.commands_executed++
   await userRepository.save(user)
 
-  console.log(`spreading ${invokeArgs}`)
+  console.log(invokeArgs)
   return command.target(context, ...invokeArgs).catch((error: Error) => {
     if (error instanceof CommandDefinedError) {
       throw error
@@ -293,6 +304,12 @@ async function invokeCommand (context: Context, command: Command, args: string[]
 }
 
 export {
+  TextBasedChannel,
+  ParameterType,
+  Parameter,
+  FlagParameter,
+  Command,
+  Context,
   commands,
   reloadCommands,
   parseCommand,
